@@ -11,8 +11,8 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "poetry install"
+args = "upm install"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "poetry run python main.py"
+args = "python main.py"
