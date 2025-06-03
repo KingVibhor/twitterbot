@@ -10,35 +10,46 @@
     <h1 class="text-3xl font-bold mb-6">Twitter Bot Dashboard</h1>
 
     <div class="max-w-4xl mx-auto">
-        <!-- Test API Section -->
+        <!-- Stats Display -->
         <div class="bg-white p-6 rounded-lg shadow mb-6">
-            <h2 class="text-xl font-semibold mb-4">Test API</h2>
-            <button onclick="testAPI()" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 mb-4">
-                Test API Endpoints
-            </button>
-            <div id="apiResponse" class="mt-4 p-4 bg-gray-100 rounded-lg"></div>
+            <h2 class="text-xl font-semibold mb-4">Bot Statistics</h2>
+            <div id="stats" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <!-- Stats will be populated by JavaScript -->
+            </div>
         </div>
 
-        <!-- Bot Status -->
+        <!-- Recent Activity -->
         <div class="bg-white p-6 rounded-lg shadow mb-6">
-            <h2 class="text-xl font-semibold mb-4">Bot Status</h2>
-            <p class="text-green-600">API is running successfully</p>
+            <h2 class="text-xl font-semibold mb-4">Recent Activity</h2>
+            <div id="activity" class="space-y-4">
+                <!-- Activity will be populated by JavaScript -->
+            </div>
         </div>
 
         <!-- Bot Settings -->
         <div class="bg-white p-6 rounded-lg shadow">
             <h2 class="text-xl font-semibold mb-4">Bot Settings</h2>
             <form id="settingsForm">
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Hashtags to Monitor</label>
-                    <input type="text" id="hashtags" class="w-full px-3 py-2 border rounded-md" 
-                           value="#motivation,#inspiration,#mindset">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Hashtags to Monitor</label>
+                        <input type="text" id="hashtags" class="w-full px-3 py-2 border rounded-md" 
+                               value="#motivation,#inspiration,#mindset">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Daily Post Time</label>
+                        <input type="time" id="postTime" class="w-full px-3 py-2 border rounded-md" value="09:00">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Reply Messages</label>
+                        <textarea id="replyMessages" rows="3" class="w-full px-3 py-2 border rounded-md">
+Great content! Keep it up!
+Inspiring! Love this!
+This resonates with me!
+                        </textarea>
+                    </div>
                 </div>
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Daily Post Time</label>
-                    <input type="time" id="postTime" class="w-full px-3 py-2 border rounded-md" value="09:00">
-                </div>
-                <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">
+                <button type="submit" class="mt-4 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">
                     Save Settings
                 </button>
             </form>
@@ -46,33 +57,50 @@
     </div>
 
     <script>
-        async function testAPI() {
-            const responseDiv = document.getElementById('apiResponse');
-            responseDiv.innerHTML = '<p>Testing API endpoints...</p>';
+        // Update stats display
+        function updateStats(stats) {
+            const statsDiv = document.getElementById('stats');
+            statsDiv.innerHTML = `
+                <div class="p-4 bg-green-100 rounded-lg">
+                    <p class="text-sm text-gray-600">Total Tweets</p>
+                    <p class="text-2xl font-bold">${stats.total_tweets}</p>
+                </div>
+                <div class="p-4 bg-blue-100 rounded-lg">
+                    <p class="text-sm text-gray-600">Followers</p>
+                    <p class="text-2xl font-bold">${stats.followers}</p>
+                </div>
+                <div class="p-4 bg-yellow-100 rounded-lg">
+                    <p class="text-sm text-gray-600">Engagement Rate</p>
+                    <p class="text-2xl font-bold">${stats.engagement_rate}%</p>
+                </div>
+            `;
+        }
 
+        // Update activity display
+        function updateActivity() {
+            const activityDiv = document.getElementById('activity');
+            // Add recent activity items here
+            activityDiv.innerHTML = `
+                <div class="p-4 bg-gray-50 rounded-lg">
+                    <p class="text-sm text-gray-600">Last Quote Posted</p>
+                    <p class="text-gray-900">"Believe you can and you're halfway there."</p>
+                    <p class="text-xs text-gray-500">15 Jan 2024</p>
+                </div>
+            `;
+        }
+
+        // Initialize dashboard
+        async function initializeDashboard() {
             try {
-                // Test stats endpoint
-                const statsResponse = await fetch('/api/stats');
+                // Get stats
+                const statsResponse = await fetch('https://your-replit-username.replit.app:8081/api/stats');
                 const statsData = await statsResponse.json();
-                responseDiv.innerHTML += `<p>Stats Response: ${JSON.stringify(statsData, null, 2)}</p>`;
-
-                // Test adding a quote
-                const testQuote = {
-                    content: "Believe you can and you're halfway there. - Theodore Roosevelt",
-                    author: "Theodore Roosevelt"
-                };
-
-                const quoteResponse = await fetch('/api/add-quote', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(testQuote)
-                });
-                const quoteData = await quoteResponse.json();
-                responseDiv.innerHTML += `<p>Quote Response: ${JSON.stringify(quoteData, null, 2)}</p>`;
+                updateStats(statsData);
+                
+                // Update activity
+                updateActivity();
             } catch (error) {
-                responseDiv.innerHTML += `<p class="text-red-500">Error: ${error.message}</p>`;
+                console.error('Error initializing dashboard:', error);
             }
         }
 
@@ -81,16 +109,18 @@
             e.preventDefault();
             const hashtags = document.getElementById('hashtags').value;
             const postTime = document.getElementById('postTime').value;
+            const replyMessages = document.getElementById('replyMessages').value.split('\n').filter(Boolean);
 
             try {
-                const response = await fetch('/api/settings', {
+                const response = await fetch('https://your-replit-username.replit.app:8081/api/settings', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
                         hashtags: hashtags.split(','),
-                        postTime: postTime
+                        postTime: postTime,
+                        replyMessages: replyMessages
                     })
                 });
                 const data = await response.json();
@@ -99,6 +129,9 @@
                 alert('Error saving settings: ' + error.message);
             }
         });
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', initializeDashboard);
     </script>
 </body>
 </html>
