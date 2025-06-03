@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime, timedelta
@@ -44,10 +45,19 @@ TWITTER_ACCESS_TOKEN_SECRET = os.getenv("TWITTER_ACCESS_TOKEN_SECRET")
 # OpenAI setup
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
+# Mount static files for frontend
+app.mount("/static", StaticFiles(directory="."), name="static")
 
 @app.get("/")
 def read_root():
-    return {"message": "Twitter Bot API is running"}
+    # Serve the frontend HTML file
+    from fastapi.responses import FileResponse
+    return FileResponse("index.html")
+
+@app.get("/app.js")
+def get_app_js():
+    from fastapi.responses import FileResponse
+    return FileResponse("app.js")
 
 
 @app.get("/api/stats")
