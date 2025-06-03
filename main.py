@@ -50,6 +50,38 @@ def read_root():
     return {"message": "Twitter Bot API is running"}
 
 
+@app.get("/api/stats")
+def get_stats():
+    return {
+        "total_tweets": 150,
+        "followers": 1250,
+        "engagement_rate": 4.5,
+        "last_tweet": "2024-01-15T10:30:00Z",
+        "status": "active"
+    }
+
+
+@app.post("/api/add-quote")
+def add_quote(quote: dict):
+    # In a real implementation, you'd save this to your database
+    return {
+        "success": True,
+        "message": "Quote added successfully",
+        "quote_id": 123,
+        "quote": quote
+    }
+
+
+@app.post("/api/settings")
+def update_settings(settings: dict):
+    # In a real implementation, you'd save these settings to your database
+    return {
+        "success": True,
+        "message": "Settings updated successfully",
+        "settings": settings
+    }
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8081)

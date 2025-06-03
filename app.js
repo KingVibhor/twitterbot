@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function testAPI() {
         // Test stats endpoint
-        fetch('https://your-replit-username.replit.app:8081/api/stats')
+        fetch('/api/stats')
             .then(response => response.json())
             .then(data => {
                 resultDiv.innerHTML = `<p>Stats Response: ${JSON.stringify(data, null, 2)}</p>`;
@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', function() {
             author: "Theodore Roosevelt"
         };
 
-        fetch('https://your-replit-username.replit.app:8081/api/add-quote', {
+        fetch('/api/add-quote', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
