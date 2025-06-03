@@ -11,8 +11,4 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "upm install"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "python main.py"
+args = "python -m pip install -r requirements.txt && uvicorn main:app --host 0.0.0.0 --port 8081"
