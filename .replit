@@ -12,3 +12,7 @@ mode = "sequential"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python -m pip install -r requirements.txt && python -m uvicorn main:app --host 0.0.0.0 --port 8081"
+
+[[ports]]
+localPort = 8081
+externalPort = 80

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Twitter Bot Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 p-8">
+    <h1 class="text-3xl font-bold mb-6">Twitter Bot Dashboard</h1>
+
+    <div class="max-w-4xl mx-auto">
+        <!-- Test API Section -->
+        <div class="bg-white p-6 rounded-lg shadow mb-6">
+            <h2 class="text-xl font-semibold mb-4">Test API</h2>
+            <button onclick="testAPI()" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 mb-4">
+                Test API Endpoints
+            </button>
+            <div id="apiResponse" class="mt-4 p-4 bg-gray-100 rounded-lg"></div>
+        </div>
+
+        <!-- Bot Status -->
+        <div class="bg-white p-6 rounded-lg shadow mb-6">
+            <h2 class="text-xl font-semibold mb-4">Bot Status</h2>
+            <p class="text-green-600">API is running successfully</p>
+        </div>
+
+        <!-- Bot Settings -->
+        <div class="bg-white p-6 rounded-lg shadow">
+            <h2 class="text-xl font-semibold mb-4">Bot Settings</h2>
+            <form id="settingsForm">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Hashtags to Monitor</label>
+                    <input type="text" id="hashtags" class="w-full px-3 py-2 border rounded-md" 
+                           value="#motivation,#inspiration,#mindset">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Daily Post Time</label>
+                    <input type="time" id="postTime" class="w-full px-3 py-2 border rounded-md" value="09:00">
+                </div>
+                <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">
+                    Save Settings
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        async function testAPI() {
+            const responseDiv = document.getElementById('apiResponse');
+            responseDiv.innerHTML = '<p>Testing API endpoints...</p>';
+
+            try {
+                // Test stats endpoint
+                const statsResponse = await fetch('https://your-replit-username.replit.app:8081/api/stats');
+                const statsData = await statsResponse.json();
+                responseDiv.innerHTML += `<p>Stats Response: ${JSON.stringify(statsData, null, 2)}</p>`;
+
+                // Test adding a quote
+                const testQuote = {
+                    content: "Believe you can and you're halfway there. - Theodore Roosevelt",
+                    author: "Theodore Roosevelt"
+                };
+
+                const quoteResponse = await fetch('https://your-replit-username.replit.app:8081/api/add-quote', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(testQuote)
+                });
+                const quoteData = await quoteResponse.json();
+                responseDiv.innerHTML += `<p>Quote Response: ${JSON.stringify(quoteData, null, 2)}</p>`;
+            } catch (error) {
+                responseDiv.innerHTML += `<p class="text-red-500">Error: ${error.message}</p>`;
+            }
+        }
+
+        // Handle form submission
+        document.getElementById('settingsForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const hashtags = document.getElementById('hashtags').value;
+            const postTime = document.getElementById('postTime').value;
+
+            try {
+                const response = await fetch('https://your-replit-username.replit.app:8081/api/settings', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        hashtags: hashtags.split(','),
+                        postTime: postTime
+                    })
+                });
+                const data = await response.json();
+                alert('Settings saved successfully!');
+            } catch (error) {
+                alert('Error saving settings: ' + error.message);
+            }
+        });
+    </script>
+</body>
+</html>
