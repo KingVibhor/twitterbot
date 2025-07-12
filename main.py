@@ -50,9 +50,8 @@ app.mount("/static", StaticFiles(directory="."), name="static")
 
 @app.get("/")
 def read_root():
-    # Serve the frontend HTML file
-    from fastapi.responses import FileResponse
-    return FileResponse("index.html")
+    return {"status": "OK"}
+
 
 @app.get("/app.js")
 def get_app_js():
@@ -94,4 +93,5 @@ def update_settings(settings: dict):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8081)
+    uvicorn.run("main:app", host="0.0.0.0", port=10000, reload=False)
+
