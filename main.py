@@ -1,23 +1,21 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
-from fastapi import Request
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import JSONResponse
 from sqlalchemy import create_engine, Column, Integer, String, DateTime
 from sqlalchemy.orm import sessionmaker, declarative_base, Session
 from datetime import datetime, date
-import os
+from datetime import datetime, timedelta
+from apscheduler.schedulers.background import BackgroundScheduler
 from dotenv import load_dotenv
 import tweepy
-import openai
-from apscheduler.schedulers.background import BackgroundScheduler
+from openai import OpenAI
+import os
 
 # ---------------------- ENV & App Setup ---------------------- #
 load_dotenv()
 app = FastAPI()
 
-# CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -26,7 +24,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Static files
 app.mount("/static", StaticFiles(directory="."), name="static")
 
 # ---------------------- Database Setup ---------------------- #
@@ -70,17 +67,15 @@ auth = tweepy.OAuth1UserHandler(
     TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_TOKEN_SECRET
 )
 twitter_api = tweepy.API(auth)
-openai.api_key = OPENAI_API_KEY
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 # ---------------------- Routes ---------------------- #
-
 @app.api_route("/", methods=["GET", "HEAD"])
 def read_root(request: Request):
     return FileResponse("index.html")
 
 @app.get("/app.js")
 def get_app_js():
-    from fastapi.responses import FileResponse
     return FileResponse("app.js")
 
 @app.get("/api/stats")
@@ -151,61 +146,52 @@ def scheduler_status(db: Session = Depends(get_db)):
             "time": None
         }
 
-# ---------------------- Quote Generator (AI) ---------------------- #
-def generate_quote():
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[{
-            "role": "user",
-            "content": "Give me a short motivational quote."
-        }]
-    )
-    return response['choices'][0]['message']['content']
-
 # ---------------------- Scheduled Daily Tweet ---------------------- #
 scheduler = BackgroundScheduler()
 
 def scheduled_post():
     db = SessionLocal()
     try:
-        # Step 1: Generate a new motivational quote using OpenAI
-        response = openai.ChatCompletion.create(
+        print("📢 Running scheduled_post at", datetime.utcnow().isoformat())
+        response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[{
                 "role": "user",
                 "content": "Give me a short motivational quote with the author's name."
             }]
         )
-        raw_quote = response['choices'][0]['message']['content']
+        raw_quote = response.choices[0].message.content.strip()
 
-        # Step 2: Try to split the quote and author
         if "—" in raw_quote:
             content, author = map(str.strip, raw_quote.split("—", 1))
         elif "-" in raw_quote:
             content, author = map(str.strip, raw_quote.split("-", 1))
         else:
-            content, author = raw_quote.strip(), "Anonymous"
+            content, author = raw_quote, "Anonymous"
 
-        full_text = f"{content} — {author}"
-
-        # Step 3: Save to DB
+        status = f"{content} — {author}"
         new_quote = Quote(content=content, author=author)
         db.add(new_quote)
         db.commit()
 
-        # Step 4: Tweet it
-        twitter_api.update_status(status=full_text)
-        print("✅ Tweeted:", full_text)
+        twitter_api.update_status(status=status)
+        print("✅ Tweeted:", status)
 
     except Exception as e:
         print("❌ Error during scheduled OpenAI tweet:", str(e))
     finally:
         db.close()
 
-
-# Schedule the job at 7:00 AM (UTC)
+# Add both jobs: daily + 2-minute post-deploy
 scheduler.add_job(scheduled_post, 'cron', hour=8, minute=5)
+scheduler.add_job(
+    scheduled_post,
+    'date',
+    run_date=datetime.utcnow() + timedelta(minutes=2),
+    id="initial_tweet"
+)
 scheduler.start()
+
 
 # ---------------------- App Start ---------------------- #
 if __name__ == "__main__":
