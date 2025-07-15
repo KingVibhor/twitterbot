@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from apscheduler.schedulers.background import BackgroundScheduler
 from dotenv import load_dotenv
 import tweepy
+import openai
 from openai import OpenAI
 import os
 
@@ -67,7 +68,8 @@ auth = tweepy.OAuth1UserHandler(
     TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_TOKEN_SECRET
 )
 twitter_api = tweepy.API(auth)
-client = OpenAI(api_key=OPENAI_API_KEY)
+openai.api_key = OPENAI_API_KEY
+
 
 # ---------------------- Routes ---------------------- #
 @app.api_route("/", methods=["GET", "HEAD"])
@@ -153,13 +155,13 @@ def scheduled_post():
     db = SessionLocal()
     try:
         print("📢 Running scheduled_post at", datetime.utcnow().isoformat())
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[{
-                "role": "user",
-                "content": "Give me a short motivational quote with the author's name."
-            }]
-        )
+        response = openai.ChatCompletion.create(
+    model="gpt-3.5-turbo",
+    messages=[{
+        "role": "user",
+        "content": "Give me a short motivational quote with the author's name."
+    }]
+)
         raw_quote = response.choices[0].message.content.strip()
 
         if "—" in raw_quote:
