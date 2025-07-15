@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 from sqlalchemy import create_engine, Column, Integer, String, DateTime
@@ -74,7 +75,7 @@ openai.api_key = OPENAI_API_KEY
 
 @app.get("/")
 def read_root():
-    return {"status": "OK"}
+    return FileResponse("index.html")
 
 @app.get("/app.js")
 def get_app_js():
@@ -179,7 +180,7 @@ def scheduled_post():
         db.close()
 
 # Schedule the job at 7:00 AM (UTC)
-scheduler.add_job(scheduled_post, 'cron', hour=7, minute=10)
+scheduler.add_job(scheduled_post, 'cron', hour=7, minute=50)
 scheduler.start()
 
 # ---------------------- App Start ---------------------- #
