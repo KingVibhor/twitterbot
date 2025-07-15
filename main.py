@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
+from fastapi import Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 from sqlalchemy import create_engine, Column, Integer, String, DateTime
@@ -73,8 +74,8 @@ openai.api_key = OPENAI_API_KEY
 
 # ---------------------- Routes ---------------------- #
 
-@app.get("/")
-def read_root():
+@app.api_route("/", methods=["GET", "HEAD"])
+def read_root(request: Request):
     return FileResponse("index.html")
 
 @app.get("/app.js")
@@ -167,20 +168,43 @@ scheduler = BackgroundScheduler()
 def scheduled_post():
     db = SessionLocal()
     try:
-        latest = db.query(Quote).order_by(Quote.timestamp.desc()).first()
-        if latest:
-            status = f"{latest.content} — {latest.author}"
-            twitter_api.update_status(status=status)
-            print("✅ Tweet posted at scheduled time:", status)
+        # Step 1: Generate a new motivational quote using OpenAI
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[{
+                "role": "user",
+                "content": "Give me a short motivational quote with the author's name."
+            }]
+        )
+        raw_quote = response['choices'][0]['message']['content']
+
+        # Step 2: Try to split the quote and author
+        if "—" in raw_quote:
+            content, author = map(str.strip, raw_quote.split("—", 1))
+        elif "-" in raw_quote:
+            content, author = map(str.strip, raw_quote.split("-", 1))
         else:
-            print("⚠️ No quote found in DB to tweet.")
+            content, author = raw_quote.strip(), "Anonymous"
+
+        full_text = f"{content} — {author}"
+
+        # Step 3: Save to DB
+        new_quote = Quote(content=content, author=author)
+        db.add(new_quote)
+        db.commit()
+
+        # Step 4: Tweet it
+        twitter_api.update_status(status=full_text)
+        print("✅ Tweeted:", full_text)
+
     except Exception as e:
-        print("❌ Error during scheduled tweet:", str(e))
+        print("❌ Error during scheduled OpenAI tweet:", str(e))
     finally:
         db.close()
 
+
 # Schedule the job at 7:00 AM (UTC)
-scheduler.add_job(scheduled_post, 'cron', hour=7, minute=50)
+scheduler.add_job(scheduled_post, 'cron', hour=8, minute=5)
 scheduler.start()
 
 # ---------------------- App Start ---------------------- #
