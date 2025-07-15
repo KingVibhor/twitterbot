@@ -1,8 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
   <title>Twitter Bot Dashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
@@ -31,7 +30,7 @@
 
   <script>
     async function loadData() {
-      // Stats
+      // Load Stats
       const statsRes = await fetch('/api/stats');
       const stats = await statsRes.json();
 
@@ -42,14 +41,14 @@
         <div class="bg-gray-800 p-4 rounded-lg text-center"><div class="text-sm">${new Date(stats.last_tweet).toLocaleString()}</div><div>Last Tweet</div></div>
       `;
 
-      // Scheduler
+      // Scheduler Status
       const schedRes = await fetch('/api/scheduler-status');
       const scheduler = await schedRes.json();
       document.getElementById('scheduler-status').innerHTML = scheduler.tweeted_today 
         ? `✅ Tweeted at ${new Date(scheduler.time).toLocaleTimeString()}`
         : `❌ No scheduled tweet today`;
 
-      // Latest tweet
+      // Latest Tweet
       const tweetRes = await fetch('/api/latest-tweet');
       const tweet = await tweetRes.json();
       document.getElementById('latest-tweet').textContent = `"${tweet.text}" at ${new Date(tweet.time).toLocaleString()}`;
