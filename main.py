@@ -4,13 +4,11 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import create_engine, Column, Integer, String, DateTime
 from sqlalchemy.orm import sessionmaker, declarative_base, Session
-from datetime import datetime, date
-from datetime import datetime, timedelta
+from datetime import datetime, date, timedelta
 from apscheduler.schedulers.background import BackgroundScheduler
 from dotenv import load_dotenv
 import tweepy
 import openai
-from openai import OpenAI
 import os
 
 # ---------------------- ENV & App Setup ---------------------- #
@@ -69,7 +67,6 @@ auth = tweepy.OAuth1UserHandler(
 )
 twitter_api = tweepy.API(auth)
 openai.api_key = OPENAI_API_KEY
-
 
 # ---------------------- Routes ---------------------- #
 @app.api_route("/", methods=["GET", "HEAD"])
@@ -156,12 +153,12 @@ def scheduled_post():
     try:
         print("📢 Running scheduled_post at", datetime.utcnow().isoformat())
         response = openai.ChatCompletion.create(
-    model="gpt-3.5-turbo",
-    messages=[{
-        "role": "user",
-        "content": "Give me a short motivational quote with the author's name."
-    }]
-)
+            model="gpt-3.5-turbo",
+            messages=[{
+                "role": "user",
+                "content": "Give me a short motivational quote with the author's name."
+            }]
+        )
         raw_quote = response.choices[0].message.content.strip()
 
         if "—" in raw_quote:
@@ -184,16 +181,17 @@ def scheduled_post():
     finally:
         db.close()
 
-# Add both jobs: daily + 2-minute post-deploy
-scheduler.add_job(scheduled_post, 'cron', hour=8, minute=5)
-scheduler.add_job(
-    scheduled_post,
-    'date',
-    run_date=datetime.utcnow() + timedelta(minutes=2),
-    id="initial_tweet"
-)
-scheduler.start()
-
+try:
+    scheduler.add_job(scheduled_post, 'cron', hour=8, minute=5)
+    scheduler.add_job(
+        scheduled_post,
+        'date',
+        run_date=datetime.utcnow() + timedelta(minutes=2),
+        id="initial_tweet"
+    )
+    scheduler.start()
+except Exception as e:
+    print("❌ Scheduler failed to start:", str(e))
 
 # ---------------------- App Start ---------------------- #
 if __name__ == "__main__":
