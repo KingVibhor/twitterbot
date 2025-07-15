@@ -8,8 +8,8 @@ from datetime import datetime, date, timedelta
 from apscheduler.schedulers.background import BackgroundScheduler
 from dotenv import load_dotenv
 import tweepy
-import openai
 import os
+import google.generativeai as genai
 
 # ---------------------- ENV & App Setup ---------------------- #
 load_dotenv()
@@ -54,19 +54,19 @@ def get_db():
     finally:
         db.close()
 
-# ---------------------- Twitter & OpenAI ---------------------- #
+# ---------------------- Twitter & Gemini ---------------------- #
 TWITTER_API_KEY = os.getenv("TWITTER_API_KEY")
 TWITTER_API_SECRET = os.getenv("TWITTER_API_SECRET")
 TWITTER_ACCESS_TOKEN = os.getenv("TWITTER_ACCESS_TOKEN")
 TWITTER_ACCESS_TOKEN_SECRET = os.getenv("TWITTER_ACCESS_TOKEN_SECRET")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 auth = tweepy.OAuth1UserHandler(
     TWITTER_API_KEY, TWITTER_API_SECRET,
     TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_TOKEN_SECRET
 )
 twitter_api = tweepy.API(auth)
-openai.api_key = OPENAI_API_KEY
+genai.configure(api_key=GEMINI_API_KEY)
 
 # ---------------------- Routes ---------------------- #
 @app.api_route("/", methods=["GET", "HEAD"])
@@ -148,27 +148,31 @@ def scheduler_status(db: Session = Depends(get_db)):
 # ---------------------- Scheduled Daily Tweet ---------------------- #
 scheduler = BackgroundScheduler()
 
+def generate_quote_with_gemini():
+    try:
+        model = genai.GenerativeModel("gemini-pro")
+        response = model.generate_content("Give me a short motivational quote with the author's name.")
+        quote = response.text.strip()
+
+        if "—" in quote:
+            content, author = map(str.strip, quote.split("—", 1))
+        elif "-" in quote:
+            content, author = map(str.strip, quote.split("-", 1))
+        else:
+            content, author = quote, "Anonymous"
+
+        return content, author
+    except Exception as e:
+        print("⚠️ Gemini generation failed:", str(e))
+        return "Stay positive!", "Anonymous"
+
 def scheduled_post():
     db = SessionLocal()
     try:
         print("📢 Running scheduled_post at", datetime.utcnow().isoformat())
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[{
-                "role": "user",
-                "content": "Give me a short motivational quote with the author's name."
-            }]
-        )
-        raw_quote = response.choices[0].message.content.strip()
-
-        if "—" in raw_quote:
-            content, author = map(str.strip, raw_quote.split("—", 1))
-        elif "-" in raw_quote:
-            content, author = map(str.strip, raw_quote.split("-", 1))
-        else:
-            content, author = raw_quote, "Anonymous"
-
+        content, author = generate_quote_with_gemini()
         status = f"{content} — {author}"
+
         new_quote = Quote(content=content, author=author)
         db.add(new_quote)
         db.commit()
@@ -177,7 +181,7 @@ def scheduled_post():
         print("✅ Tweeted:", status)
 
     except Exception as e:
-        print("❌ Error during scheduled OpenAI tweet:", str(e))
+        print("❌ Error during tweet:", str(e))
     finally:
         db.close()
 
