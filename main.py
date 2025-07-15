@@ -1,9 +1,10 @@
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse
 from sqlalchemy import create_engine, Column, Integer, String, DateTime
 from sqlalchemy.orm import sessionmaker, declarative_base, Session
-from datetime import datetime
+from datetime import datetime, date
 import os
 from dotenv import load_dotenv
 import tweepy
@@ -32,14 +33,12 @@ engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
-
 class Quote(Base):
     __tablename__ = "quotes"
     id = Column(Integer, primary_key=True, index=True)
     content = Column(String)
     author = Column(String)
     timestamp = Column(DateTime, default=datetime.utcnow)
-
 
 class BotSetting(Base):
     __tablename__ = "settings"
@@ -48,9 +47,7 @@ class BotSetting(Base):
     post_time = Column(String)
     replies = Column(String)
 
-
 Base.metadata.create_all(bind=engine)
-
 
 def get_db():
     db = SessionLocal()
@@ -98,12 +95,9 @@ def get_stats():
 def add_quote(quote: dict, db: Session = Depends(get_db)):
     text = f"{quote['content']} — {quote['author']}"
     try:
-        # Save to DB
         new_quote = Quote(content=quote["content"], author=quote["author"])
         db.add(new_quote)
         db.commit()
-
-        # Post to Twitter
         twitter_api.update_status(status=text)
         return {"success": True, "message": "Quote saved and tweeted"}
     except Exception as e:
@@ -130,6 +124,31 @@ def update_settings(settings: dict, db: Session = Depends(get_db)):
         "settings": settings
     }
 
+@app.get("/api/latest-tweet")
+def latest_tweet(db: Session = Depends(get_db)):
+    latest = db.query(Quote).order_by(Quote.timestamp.desc()).first()
+    if latest:
+        return {
+            "text": f"{latest.content} — {latest.author}",
+            "time": latest.timestamp.isoformat()
+        }
+    return JSONResponse(status_code=404, content={"message": "No tweet found."})
+
+@app.get("/api/scheduler-status")
+def scheduler_status(db: Session = Depends(get_db)):
+    today = date.today()
+    latest = db.query(Quote).order_by(Quote.timestamp.desc()).first()
+    if latest and latest.timestamp.date() == today:
+        return {
+            "tweeted_today": True,
+            "time": latest.timestamp.isoformat()
+        }
+    else:
+        return {
+            "tweeted_today": False,
+            "time": None
+        }
+
 # ---------------------- Quote Generator (AI) ---------------------- #
 def generate_quote():
     response = openai.ChatCompletion.create(
@@ -151,16 +170,16 @@ def scheduled_post():
         if latest:
             status = f"{latest.content} — {latest.author}"
             twitter_api.update_status(status=status)
-            print("✅ Tweet posted:", status)
+            print("✅ Tweet posted at scheduled time:", status)
         else:
-            print("ℹ️ No quotes to tweet.")
+            print("⚠️ No quote found in DB to tweet.")
     except Exception as e:
-        print("❌ Scheduled tweet failed:", str(e))
+        print("❌ Error during scheduled tweet:", str(e))
     finally:
         db.close()
 
-# Schedule the job at 9:00 AM every day
-scheduler.add_job(scheduled_post, 'cron', hour=6, minute=35)
+# Schedule the job at 7:00 AM (UTC)
+scheduler.add_job(scheduled_post, 'cron', hour=7, minute=10)
 scheduler.start()
 
 # ---------------------- App Start ---------------------- #

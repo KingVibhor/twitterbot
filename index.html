@@ -1,137 +1,61 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Twitter Bot Dashboard</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Twitter Bot Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 p-8">
-    <h1 class="text-3xl font-bold mb-6">Twitter Bot Dashboard</h1>
+<body class="bg-gray-900 text-white font-sans">
+  <div class="max-w-4xl mx-auto p-6">
+    <h1 class="text-3xl font-bold mb-6">🐦 Twitter Bot Dashboard</h1>
 
-    <div class="max-w-4xl mx-auto">
-        <!-- Stats Display -->
-        <div class="bg-white p-6 rounded-lg shadow mb-6">
-            <h2 class="text-xl font-semibold mb-4">Bot Statistics</h2>
-            <div id="stats" class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <!-- Stats will be populated by JavaScript -->
-            </div>
-        </div>
-
-        <!-- Recent Activity -->
-        <div class="bg-white p-6 rounded-lg shadow mb-6">
-            <h2 class="text-xl font-semibold mb-4">Recent Activity</h2>
-            <div id="activity" class="space-y-4">
-                <!-- Activity will be populated by JavaScript -->
-            </div>
-        </div>
-
-        <!-- Bot Settings -->
-        <div class="bg-white p-6 rounded-lg shadow">
-            <h2 class="text-xl font-semibold mb-4">Bot Settings</h2>
-            <form id="settingsForm">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Hashtags to Monitor</label>
-                        <input type="text" id="hashtags" class="w-full px-3 py-2 border rounded-md" 
-                               value="#motivation,#inspiration,#mindset">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Daily Post Time</label>
-                        <input type="time" id="postTime" class="w-full px-3 py-2 border rounded-md" value="09:00">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Reply Messages</label>
-                        <textarea id="replyMessages" rows="3" class="w-full px-3 py-2 border rounded-md">
-Great content! Keep it up!
-Inspiring! Love this!
-This resonates with me!
-                        </textarea>
-                    </div>
-                </div>
-                <button type="submit" class="mt-4 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">
-                    Save Settings
-                </button>
-            </form>
-        </div>
+    <div id="stats" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <!-- Populated by JS -->
     </div>
 
-    <script>
-        // Update stats display
-        function updateStats(stats) {
-            const statsDiv = document.getElementById('stats');
-            statsDiv.innerHTML = `
-                <div class="p-4 bg-green-100 rounded-lg">
-                    <p class="text-sm text-gray-600">Total Tweets</p>
-                    <p class="text-2xl font-bold">${stats.total_tweets}</p>
-                </div>
-                <div class="p-4 bg-blue-100 rounded-lg">
-                    <p class="text-sm text-gray-600">Followers</p>
-                    <p class="text-2xl font-bold">${stats.followers}</p>
-                </div>
-                <div class="p-4 bg-yellow-100 rounded-lg">
-                    <p class="text-sm text-gray-600">Engagement Rate</p>
-                    <p class="text-2xl font-bold">${stats.engagement_rate}%</p>
-                </div>
-            `;
-        }
+    <div class="bg-gray-800 p-4 rounded-lg mb-4">
+      <h2 class="text-xl font-semibold mb-2">🕒 Scheduler Status</h2>
+      <div id="scheduler-status" class="text-green-400">Checking...</div>
+    </div>
 
-        // Update activity display
-        function updateActivity() {
-            const activityDiv = document.getElementById('activity');
-            // Add recent activity items here
-            activityDiv.innerHTML = `
-                <div class="p-4 bg-gray-50 rounded-lg">
-                    <p class="text-sm text-gray-600">Last Quote Posted</p>
-                    <p class="text-gray-900">"Believe you can and you're halfway there."</p>
-                    <p class="text-xs text-gray-500">15 Jan 2024</p>
-                </div>
-            `;
-        }
+    <div class="bg-gray-800 p-4 rounded-lg mb-4">
+      <h2 class="text-xl font-semibold mb-2">📢 Latest Tweet</h2>
+      <div id="latest-tweet" class="text-lg">Fetching latest tweet...</div>
+    </div>
 
-        // Initialize dashboard
-        async function initializeDashboard() {
-            try {
-                // Get stats
-                const statsResponse = await fetch('/api/stats');
-                const statsData = await statsResponse.json();
-                updateStats(statsData);
-                
-                // Update activity
-                updateActivity();
-            } catch (error) {
-                console.error('Error initializing dashboard:', error);
-            }
-        }
+    <button onclick="loadData()" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg mt-4">
+      🔄 Refresh Dashboard
+    </button>
+  </div>
 
-        // Handle form submission
-        document.getElementById('settingsForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const hashtags = document.getElementById('hashtags').value;
-            const postTime = document.getElementById('postTime').value;
-            const replyMessages = document.getElementById('replyMessages').value.split('\n').filter(Boolean);
+  <script>
+    async function loadData() {
+      // Stats
+      const statsRes = await fetch('/api/stats');
+      const stats = await statsRes.json();
 
-            try {
-                const response = await fetch('/api/settings', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        hashtags: hashtags.split(','),
-                        postTime: postTime,
-                        replyMessages: replyMessages
-                    })
-                });
-                const data = await response.json();
-                alert('Settings saved successfully!');
-            } catch (error) {
-                alert('Error saving settings: ' + error.message);
-            }
-        });
+      document.getElementById('stats').innerHTML = `
+        <div class="bg-gray-800 p-4 rounded-lg text-center"><div class="text-xl">${stats.total_tweets}</div><div>Total Tweets</div></div>
+        <div class="bg-gray-800 p-4 rounded-lg text-center"><div class="text-xl">${stats.followers}</div><div>Followers</div></div>
+        <div class="bg-gray-800 p-4 rounded-lg text-center"><div class="text-xl">${stats.engagement_rate}%</div><div>Engagement</div></div>
+        <div class="bg-gray-800 p-4 rounded-lg text-center"><div class="text-sm">${new Date(stats.last_tweet).toLocaleString()}</div><div>Last Tweet</div></div>
+      `;
 
-        // Initialize when page loads
-        document.addEventListener('DOMContentLoaded', initializeDashboard);
-    </script>
+      // Scheduler
+      const schedRes = await fetch('/api/scheduler-status');
+      const scheduler = await schedRes.json();
+      document.getElementById('scheduler-status').innerHTML = scheduler.tweeted_today 
+        ? `✅ Tweeted at ${new Date(scheduler.time).toLocaleTimeString()}`
+        : `❌ No scheduled tweet today`;
+
+      // Latest tweet
+      const tweetRes = await fetch('/api/latest-tweet');
+      const tweet = await tweetRes.json();
+      document.getElementById('latest-tweet').textContent = `"${tweet.text}" at ${new Date(tweet.time).toLocaleString()}`;
+    }
+
+    loadData();
+  </script>
 </body>
 </html>
