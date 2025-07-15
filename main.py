@@ -160,7 +160,7 @@ def scheduled_post():
         db.close()
 
 # Schedule the job at 9:00 AM every day
-scheduler.add_job(scheduled_post, 'cron', hour=9, minute=0)
+scheduler.add_job(scheduled_post, 'cron', hour=6, minute=35)
 scheduler.start()
 
 # ---------------------- App Start ---------------------- #
