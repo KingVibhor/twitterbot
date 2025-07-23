@@ -54,7 +54,7 @@ def get_db():
     finally:
         db.close()
 
-# ---------------------- Twitter & Gemini ---------------------- #
+# ---------------------- Twitter & Gemini Setup ---------------------- #
 TWITTER_API_KEY = os.getenv("TWITTER_API_KEY")
 TWITTER_API_SECRET = os.getenv("TWITTER_API_SECRET")
 TWITTER_ACCESS_TOKEN = os.getenv("TWITTER_ACCESS_TOKEN")
@@ -145,12 +145,12 @@ def scheduler_status(db: Session = Depends(get_db)):
             "time": None
         }
 
-# ---------------------- Scheduled Daily Tweet ---------------------- #
+# ---------------------- Scheduled Tweet Logic ---------------------- #
 scheduler = BackgroundScheduler()
 
 def generate_quote_with_gemini():
     try:
-        model = genai.GenerativeModel("models/gemini-pro")  # include full model path
+        model = genai.GenerativeModel("gemini-pro")
         response = model.generate_content("Give me a short motivational quote with the author's name.")
         quote = response.text.strip()
 
@@ -185,6 +185,7 @@ def scheduled_post():
     finally:
         db.close()
 
+# ---------------------- Scheduler Jobs ---------------------- #
 try:
     scheduler.add_job(scheduled_post, 'cron', hour=8, minute=5)
     scheduler.add_job(
@@ -197,18 +198,7 @@ try:
 except Exception as e:
     print("❌ Scheduler failed to start:", str(e))
 
-# ---------------------- App Start ---------------------- #
+# ---------------------- Run App ---------------------- #
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=10000, reload=False)
-
-
-# TESTING ONLY: Tweet directly using Bearer Token
-import requests
-headers = {
-    "Authorization": f"Bearer {os.getenv('TWITTER_BEARER_TOKEN')}",
-    "Content-Type": "application/json"
-}
-json_data = {"text": "Hello from Render test!"}
-r = requests.post("https://api.twitter.com/2/tweets", headers=headers, json=json_data)
-print(r.status_code, r.text)
