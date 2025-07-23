@@ -201,3 +201,14 @@ except Exception as e:
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=10000, reload=False)
+
+
+# TESTING ONLY: Tweet directly using Bearer Token
+import requests
+headers = {
+    "Authorization": f"Bearer {os.getenv('TWITTER_BEARER_TOKEN')}",
+    "Content-Type": "application/json"
+}
+json_data = {"text": "Hello from Render test!"}
+r = requests.post("https://api.twitter.com/2/tweets", headers=headers, json=json_data)
+print(r.status_code, r.text)
