@@ -150,7 +150,7 @@ scheduler = BackgroundScheduler()
 
 def generate_quote_with_gemini():
     try:
-        model = genai.GenerativeModel("gemini-pro")
+        model = genai.GenerativeModel("models/gemini-pro")  # include full model path
         response = model.generate_content("Give me a short motivational quote with the author's name.")
         quote = response.text.strip()
 
